@@ -1,3 +1,9 @@
+## [9.3.1] 2021-11-19
+
+### Changed
+
+- Updated package.json metadata.
+
 ## [9.3.0] 2021-11-17
 
 ### Changed
