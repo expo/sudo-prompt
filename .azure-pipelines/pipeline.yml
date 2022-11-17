@@ -24,6 +24,6 @@ extends:
   template: azure-pipelines/npm-package/pipeline.yml@templates
   parameters:
     npmPackages:
-      - name: @vscode/sudo-prompt
-
+      - name: sudo-prompt
+        testPlatforms: []               
         publishPackage: ${{ parameters.publishPackage }}
