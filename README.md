@@ -1,7 +1,7 @@
 # sudo-prompt
 
 > [!NOTE]
-> This is a fork at [`expo/sude-prompt`](https://github.com/expo/sudo-prompt) to resolve deprecated Node APIs.
+> This is a fork at [`expo/sudo-prompt`](https://github.com/expo/sudo-prompt) to resolve deprecated Node APIs.
 > Upstreams:
 > - [`@vscode/sudo-prompt`](https://github.com/bpasero/sudo-prompt)
 > - [`sudo-prompt`](https://github.com/jorangreef/sudo-prompt) (deprecated)
