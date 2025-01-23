@@ -1,6 +1,7 @@
 {
   "name": "@expo/sudo-prompt",
-  "version": "9.3.1",
+  "public": true,
+  "version": "9.3.2",
   "description": "Run a command using sudo, prompting the user with an OS dialog if necessary",
   "main": "index.js",
   "types": "index.d.ts",
@@ -37,5 +38,8 @@
     "url": "https://github.com/expo/sudo-prompt/issues"
   },
   "homepage": "https://github.com/expo/sudo-prompt",
-  "scripts": {}
+  "scripts": {},
+  "publishConfig": {
+    "access": "public"
+  }
 }

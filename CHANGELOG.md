@@ -1,3 +1,15 @@
+## [9.3.2] 2021-11-19
+
+### Changed
+
+- Replace `Error` with named `SudoPromptError`
+- Remove deprecated [`util.isObject`](https://nodejs.org/api/deprecations.html#DEP0053) and [`util.isFunction`](https://nodejs.org/api/deprecations.html#DEP0049)
+
+---
+
+> [!NOTE]
+> From here on, these are releases for `@vscode/sudo-prompt` and `sudo-prompt`
+
 ## [9.3.1] 2021-11-19
 
 ### Changed
