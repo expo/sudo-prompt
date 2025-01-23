@@ -5,7 +5,6 @@ var Node = {
   os: require('os'),
   path: require('path'),
   process: process,
-  util: require('util')
 };
 
 class SudoPromptError extends Error {
@@ -39,20 +38,20 @@ function Exec() {
     throw new SudoPromptError('Command should be a string.');
   }
   if (arguments.length === 2) {
-    if (Node.util.isObject(arguments[1])) {
+    if (arguments[1] && typeof arguments[1] === 'object') {
       options = arguments[1];
-    } else if (Node.util.isFunction(arguments[1])) {
+    } else if (typeof arguments[1] === 'function') {
       end = arguments[1];
     } else {
       throw new SudoPromptError('Expected options or callback.');
     }
   } else if (arguments.length === 3) {
-    if (Node.util.isObject(arguments[1])) {
+    if (arguments[1] && typeof arguments[1] === 'object') {
       options = arguments[1];
     } else {
       throw new SudoPromptError('Expected options to be an object.');
     }
-    if (Node.util.isFunction(arguments[2])) {
+    if (typeof arguments[2] === 'function') {
       end = arguments[2];
     } else {
       throw new SudoPromptError('Expected callback to be a function.');
