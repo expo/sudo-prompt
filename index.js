@@ -8,28 +8,35 @@ var Node = {
   util: require('util')
 };
 
+class SudoPromptError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'SudoPromptError';
+  }
+}
+
 function Attempt(instance, end) {
   var platform = Node.process.platform;
   if (platform === 'darwin') return Mac(instance, end);
   if (platform === 'linux') return Linux(instance, end);
   if (platform === 'win32') return Windows(instance, end);
-  end(new Error('Platform not yet supported.'));
+  end(new SudoPromptError('Platform not yet supported.'));
 }
 
 function EscapeDoubleQuotes(string) {
-  if (typeof string !== 'string') throw new Error('Expected a string.');
+  if (typeof string !== 'string') throw new SudoPromptError('Expected a string.');
   return string.replace(/"/g, '\\"');
 }
 
 function Exec() {
   if (arguments.length < 1 || arguments.length > 3) {
-    throw new Error('Wrong number of arguments.');
+    throw new SudoPromptError('Wrong number of arguments.');
   }
   var command = arguments[0];
   var options = {};
   var end = function() {};
   if (typeof command !== 'string') {
-    throw new Error('Command should be a string.');
+    throw new SudoPromptError('Command should be a string.');
   }
   if (arguments.length === 2) {
     if (Node.util.isObject(arguments[1])) {
@@ -37,54 +44,54 @@ function Exec() {
     } else if (Node.util.isFunction(arguments[1])) {
       end = arguments[1];
     } else {
-      throw new Error('Expected options or callback.');
+      throw new SudoPromptError('Expected options or callback.');
     }
   } else if (arguments.length === 3) {
     if (Node.util.isObject(arguments[1])) {
       options = arguments[1];
     } else {
-      throw new Error('Expected options to be an object.');
+      throw new SudoPromptError('Expected options to be an object.');
     }
     if (Node.util.isFunction(arguments[2])) {
       end = arguments[2];
     } else {
-      throw new Error('Expected callback to be a function.');
+      throw new SudoPromptError('Expected callback to be a function.');
     }
   }
   if (/^sudo/i.test(command)) {
-    return end(new Error('Command should not be prefixed with "sudo".'));
+    return end(new SudoPromptError('Command should not be prefixed with "sudo".'));
   }
   if (typeof options.name === 'undefined') {
     var title = Node.process.title;
     if (ValidName(title)) {
       options.name = title;
     } else {
-      return end(new Error('process.title cannot be used as a valid name.'));
+      return end(new SudoPromptError('process.title cannot be used as a valid name.'));
     }
   } else if (!ValidName(options.name)) {
     var error = '';
     error += 'options.name must be alphanumeric only ';
     error += '(spaces are allowed) and <= 70 characters.';
-    return end(new Error(error));
+    return end(new SudoPromptError(error));
   }
   if (typeof options.icns !== 'undefined') {
     if (typeof options.icns !== 'string') {
-      return end(new Error('options.icns must be a string if provided.'));
+      return end(new SudoPromptError('options.icns must be a string if provided.'));
     } else if (options.icns.trim().length === 0) {
-      return end(new Error('options.icns must not be empty if provided.'));
+      return end(new SudoPromptError('options.icns must not be empty if provided.'));
     }
   }
   if (typeof options.env !== 'undefined') {
     if (typeof options.env !== 'object') {
-      return end(new Error('options.env must be an object if provided.'));
+      return end(new SudoPromptError('options.env must be an object if provided.'));
     } else if (Object.keys(options.env).length === 0) {
-      return end(new Error('options.env must not be empty if provided.'));
+      return end(new SudoPromptError('options.env must not be empty if provided.'));
     } else {
       for (var key in options.env) {
         var value = options.env[key];
         if (typeof key !== 'string' || typeof value !== 'string') {
           return end(
-            new Error('options.env environment variables must be strings.')
+            new SudoPromptError('options.env environment variables must be strings.')
           );
         }
         // "Environment variable names used by the utilities in the Shell and
@@ -95,7 +102,7 @@ function Exec() {
         // tolerate the presence of such names."
         if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
           return end(
-            new Error(
+            new SudoPromptError(
               'options.env has an invalid environment variable name: ' +
               JSON.stringify(key)
             )
@@ -103,7 +110,7 @@ function Exec() {
         }
         if (/[\r\n]/.test(value)) {
           return end(
-            new Error(
+            new SudoPromptError(
               'options.env has an invalid environment variable value: ' +
               JSON.stringify(value)
             )
@@ -114,7 +121,7 @@ function Exec() {
   }
   var platform = Node.process.platform;
   if (platform !== 'darwin' && platform !== 'linux' && platform !== 'win32') {
-    return end(new Error('Platform not yet supported.'));
+    return end(new SudoPromptError('Platform not yet supported.'));
   }
   var instance = {
     command: command,
@@ -183,9 +190,9 @@ function Linux(instance, end) {
           // We cannot rely on English errors because of internationalization.
           if (error && !elevated) {
             if (/No authentication agent found/.test(stderr)) {
-              error.message = NO_POLKIT_AGENT;
+              error = new SudoPromptError(NO_POLKIT_AGENT);
             } else {
-              error.message = PERMISSION_DENIED;
+              error = new SudoPromptError(PERMISSION_DENIED);
             }
           }
           end(error, stdout, stderr);
@@ -202,7 +209,7 @@ function LinuxBinary(instance, end) {
   var paths = ['/usr/bin/kdesudo', '/usr/bin/pkexec'];
   function test() {
     if (index === paths.length) {
-      return end(new Error('Unable to find pkexec or kdesudo.'));
+      return end(new SudoPromptError('Unable to find pkexec or kdesudo.'));
     }
     var path = paths[index++];
     Node.fs.stat(path,
@@ -222,9 +229,9 @@ function LinuxBinary(instance, end) {
 
 function Mac(instance, callback) {
   var temp = Node.os.tmpdir();
-  if (!temp) return callback(new Error('os.tmpdir() not defined.'));
+  if (!temp) return callback(new SudoPromptError('os.tmpdir() not defined.'));
   var user = Node.process.env.USER; // Applet shell scripts require $USER.
-  if (!user) return callback(new Error('env[\'USER\'] not defined.'));
+  if (!user) return callback(new SudoPromptError('env[\'USER\'] not defined.'));
   UUID(instance,
     function(error, uuid) {
       if (error) return callback(error);
@@ -357,7 +364,7 @@ function MacPropertyList(instance, end) {
   var key = EscapeDoubleQuotes('CFBundleName');
   var value = instance.options.name + ' Password Prompt';
   if (/'/.test(value)) {
-    return end(new Error('Value should not contain single quotes.'));
+    return end(new SudoPromptError('Value should not contain single quotes.'));
   }
   var command = [];
   command.push('/usr/bin/defaults');
@@ -374,7 +381,7 @@ function MacResult(instance, end) {
   Node.fs.readFile(Node.path.join(cwd, 'code'), 'utf-8',
     function(error, code) {
       if (error) {
-        if (error.code === 'ENOENT') return end(new Error(PERMISSION_DENIED));
+        if (error.code === 'ENOENT') return end(new SudoPromptError(PERMISSION_DENIED));
         end(error);
       } else {
         Node.fs.readFile(Node.path.join(cwd, 'stdout'), 'utf-8',
@@ -387,7 +394,7 @@ function MacResult(instance, end) {
                 if (code === 0) {
                   end(undefined, stdout, stderr);
                 } else {
-                  error = new Error(
+                  error = new SudoPromptError(
                     'Command failed: ' + instance.command + '\n' + stderr
                   );
                   error.code = code;
@@ -404,12 +411,12 @@ function MacResult(instance, end) {
 
 function Remove(path, end) {
   if (typeof path !== 'string' || !path.trim()) {
-    return end(new Error('Argument path not defined.'));
+    return end(new SudoPromptError('Argument path not defined.'));
   }
   var command = [];
   if (Node.process.platform === 'win32') {
     if (/"/.test(path)) {
-      return end(new Error('Argument path cannot contain double-quotes.'));
+      return end(new SudoPromptError('Argument path cannot contain double-quotes.'));
     }
     command.push('rmdir /s /q "' + path + '"');
   } else {
@@ -433,7 +440,7 @@ function UUID(instance, end) {
       var uuid = hash.digest('hex').slice(-32);
       if (!uuid || typeof uuid !== 'string' || uuid.length !== 32) {
         // This is critical to ensure we don't remove the wrong temp directory.
-        return end(new Error('Expected a valid UUID.'));
+        return end(new SudoPromptError('Expected a valid UUID.'));
       }
       end(undefined, uuid);
     }
@@ -451,7 +458,7 @@ function ValidName(string) {
 
 function Windows(instance, callback) {
   var temp = Node.os.tmpdir();
-  if (!temp) return callback(new Error('os.tmpdir() not defined.'));
+  if (!temp) return callback(new SudoPromptError('os.tmpdir() not defined.'));
   UUID(instance,
     function(error, uuid) {
       if (error) return callback(error);
@@ -461,7 +468,7 @@ function Windows(instance, callback) {
         // We expect double quotes to be reserved on Windows.
         // Even so, we test for this and abort if they are present.
         return callback(
-          new Error('instance.path cannot contain double-quotes.')
+          new SudoPromptError('instance.path cannot contain double-quotes.')
         );
       }
       instance.pathElevate = Node.path.join(instance.path, 'elevate.vbs');
@@ -531,7 +538,7 @@ function WindowsElevate(instance, end) {
       // error messages (issue 96) so now we must assume all errors here are
       // permission errors. This seems reasonable, given that we already run the
       // user's command in a subshell.
-      if (error) return end(new Error(PERMISSION_DENIED), stdout, stderr);
+      if (error) return end(new SudoPromptError(PERMISSION_DENIED), stdout, stderr);
       end();
     }
   );
@@ -552,7 +559,7 @@ function WindowsResult(instance, end) {
               if (code === 0) {
                 end(undefined, stdout, stderr);
               } else {
-                error = new Error(
+                error = new SudoPromptError(
                   'Command failed: ' + instance.command + '\r\n' + stderr
                 );
                 error.code = code;
@@ -586,7 +593,7 @@ function WindowsWaitForStatus(instance, end) {
             // We check that command output has been redirected to stdout file:
             Node.fs.stat(instance.pathStdout,
               function(error) {
-                if (error) return end(new Error(PERMISSION_DENIED));
+                if (error) return end(new SudoPromptError(PERMISSION_DENIED));
                 WindowsWaitForStatus(instance, end);
               }
             );
@@ -607,7 +614,7 @@ function WindowsWriteCommandScript(instance, end) {
   if (/"/.test(cwd)) {
     // We expect double quotes to be reserved on Windows.
     // Even so, we test for this and abort if they are present.
-    return end(new Error('process.cwd() cannot contain double-quotes.'));
+    return end(new SudoPromptError('process.cwd() cannot contain double-quotes.'));
   }
   var script = [];
   script.push('@echo off');
